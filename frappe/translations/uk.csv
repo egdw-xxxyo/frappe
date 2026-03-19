@@ -4985,6 +4985,7 @@ Search for {0},Пошук {0}
 Search in a document type,Пошук у типі документа
 Search or Create a New Chat,Пошук або створення нового чату
 Search or type a command,Пошук або введіть команду
+Search or type a command ({0}),Пошук або введіть команду ({0})
 Search properties...,Пошук властивостей...
 Search results for,Результати пошуку для
 Search...,Пошук...
@@ -6733,7 +6734,7 @@ circle-arrow-down,Круг-стрілка вниз
 circle-arrow-left,Круг-стрілка-вліво
 circle-arrow-right,Круг-стрілка направо
 circle-arrow-up,Круг-стрілка вгору
-clear,Ясно
+clear,Очистити
 cn-north-1,cn-північ-1
 cn-northwest-1,cn-північний захід-1
 cog,гвинтиком
