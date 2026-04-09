@@ -7343,6 +7343,11 @@ msgctxt "Currency"
 msgid "Dinars"
 msgstr "Динари"
 
+#: frappe/utils/data.py
+msgctxt "Currency"
+msgid "UAH"
+msgstr "грн"
+
 #. Label of the ldap_directory_server (Select) field in DocType 'LDAP Settings'
 #: frappe/integrations/doctype/ldap_settings/ldap_settings.json
 msgid "Directory Server"

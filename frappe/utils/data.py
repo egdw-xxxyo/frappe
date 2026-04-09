@@ -1380,6 +1380,20 @@ def money_in_words(
 	if number_format == "#,##,###.##":
 		in_million = False
 
+	# Ukrainian financial standard: "Двадцять три тисячі двісті сорок грн 00 коп."
+	if frappe.local.lang == "uk":
+		currency_short = _(main_currency, context="Currency") or main_currency
+		fraction_short = _(fraction_currency) if fraction_currency else ""
+
+		if main == "0" and fraction in ["00", "000"]:
+			out = _("Zero").capitalize() + " " + currency_short + " 00 " + fraction_short
+		elif main == "0":
+			out = "Нуль " + currency_short + " " + in_words(fraction, in_million).capitalize() + " " + fraction_short
+		else:
+			main_words = in_words(main, in_million)
+			out = main_words[0].upper() + main_words[1:] + " " + currency_short + " " + fraction + " " + fraction_short
+		return out + "."
+
 	# 0.00
 	if main == "0" and fraction in ["00", "000"]:
 		out = _(main_currency, context="Currency") + " " + _("Zero")
