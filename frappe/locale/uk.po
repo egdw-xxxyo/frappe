@@ -14969,7 +14969,7 @@ msgstr "Світла тема"
 #: frappe/public/js/frappe/list/base_list.js:1273
 #: frappe/public/js/frappe/ui/filters/filter.js:18
 msgid "Like"
-msgstr "Подобається"
+msgstr "Схожий"
 
 #: frappe/desk/like.py:92
 msgid "Liked"
