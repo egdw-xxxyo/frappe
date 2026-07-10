@@ -36,6 +36,12 @@ function authenticate_with_frappe(socket, next) {
 	}
 
 	let auth_req = request.get(get_url(socket, "/api/method/frappe.realtime.get_user_info"));
+	if (process.env.FRAPPE_BACKEND_URL) {
+		auth_req = auth_req.set(
+			"X-Frappe-Site-Name",
+			process.env.FRAPPE_SITE_NAME_HEADER || get_site_name(socket) || "frontend"
+		);
+	}
 	if (authorization_header) {
 		auth_req = auth_req.set("Authorization", authorization_header);
 	} else if (cookies.sid) {
