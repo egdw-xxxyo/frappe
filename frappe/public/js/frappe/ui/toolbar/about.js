@@ -9,6 +9,8 @@ frappe.ui.misc.about = function () {
 
 	$(dialog.body).html(
 		`<div>
+				<div id='erpnext-deployment-version'></div>
+
 				<p>${__("Open Source Applications for the Web")}</p>
 
 				<p>
@@ -90,6 +92,21 @@ frappe.ui.misc.about = function () {
 	frappe.ui.misc.about_dialog = dialog;
 
 	frappe.ui.misc.about_dialog.on_page_show = function () {
+		frappe.call({
+			method: "erpnext.manufacturing.doctype.release_note.release_note.get_current_version",
+			callback: function (r) {
+				const $w = $("#erpnext-deployment-version").empty();
+				const v = r && r.message;
+				if (!v || !v.version) return;
+				const subject = v.subject ? frappe.utils.escape_html(v.subject) : "";
+				$(`<p style="font-size: var(--text-lg);">
+						<b>${__("Deployed version")}:</b>
+						<a href="/app/release-note">${frappe.utils.escape_html(v.version)}</a>
+						${v.date ? `<span class="text-muted">(${v.date})</span>` : ""}
+						${subject ? `<br><span class="text-muted">${subject}</span>` : ""}
+					</p><hr>`).appendTo($w);
+			},
+		});
 		if (!frappe.versions) {
 			frappe.call({
 				method: "frappe.utils.change_log.get_versions",
