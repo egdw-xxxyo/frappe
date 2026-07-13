@@ -7094,7 +7094,7 @@ zoom-out,зменшити
 "{0} field cannot be set as unique in {1}, as there are non-unique existing values","Поле {0} не може бути встановлено як унікальне в {1}, оскільки існують неунікальні значення"
 {0} format could not be determined from the values in this column. Defaulting to {1}.,Формат {0} не вдалося визначити за значеннями цього стовпця. Використовується {1} за замовчуванням.
 {0} from {1} to {2},{0} з {1} до {2}
-{0} from {1} to {2} in row #{3},{0} з {1} до {2} у рядку №{3}
+{0} from {1} to {2} in row {3},{0} з {1} до {2} у рядку {3}
 {0} gained {1} point for {2} {3},{0} набрав {1} бала за {2} {3}
 {0} gained {1} points for {2} {3},{0} набрав {1} балів за {2} {3}
 {0} h,{0} год
