@@ -148,7 +148,11 @@ def get_result(doc, filters, to_date=None):
 		filters.append([doc.document_type, "creation", "<", to_date])
 
 	res = frappe.get_list(
-		doc.document_type, fields=fields, filters=filters, parent_doctype=doc.parent_document_type
+		doc.document_type,
+		fields=fields,
+		filters=filters,
+		parent_doctype=doc.parent_document_type,
+		order_by=None,
 	)
 	number = res[0]["result"] if res else 0
 
@@ -222,9 +226,14 @@ def get_cards_for_user(doctype, txt, searchfield, start, page_len, filters):
 		validate_filters=True,
 	)
 
+	allowed_modules = {module.get("module_name") for module in get_modules_from_all_apps_for_user()}
+
 	return (
 		condition_query.select(numberCard.name, numberCard.label, numberCard.document_type)
 		.where((numberCard.owner == frappe.session.user) | (numberCard.is_public == 1))
+		.where(
+			numberCard.module.isin(allowed_modules) | numberCard.module.isnull() | (numberCard.module == "")
+		)
 		.where(Criterion.any(search_conditions))
 	).run()
 

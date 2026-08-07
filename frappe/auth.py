@@ -86,6 +86,7 @@ class HTTPRequest:
 			or frappe.request.method not in UNSAFE_HTTP_METHODS
 			or frappe.conf.ignore_csrf
 			or not frappe.session
+			or not frappe.session.data
 			or not (saved_token := frappe.session.data.csrf_token)
 			or (
 				(frappe.get_request_header("X-Frappe-CSRF-Token") or frappe.form_dict.pop("csrf_token", None))
@@ -136,7 +137,9 @@ class LoginManager:
 		self.authenticate(user=user, pwd=pwd)
 		if self.force_user_to_reset_password():
 			doc = frappe.get_doc("User", self.user)
-			frappe.local.response["redirect_to"] = doc.reset_password(send_email=False, password_expired=True)
+			frappe.local.response["redirect_to"] = doc._reset_password(
+				send_email=False, password_expired=True
+			)
 			frappe.local.response["message"] = "Password Reset"
 			return False
 
@@ -700,9 +703,13 @@ def validate_api_key_secret(api_key, api_secret, frappe_authorization_source=Non
 		raise frappe.AuthenticationError
 
 	doctype = frappe_authorization_source or "User"
-	docname = frappe.db.get_value(
-		doctype=doctype, filters={"api_key": api_key, "enabled": True}, fieldname=["name"]
-	)
+	try:
+		docname = frappe.db.get_value(
+			doctype=doctype, filters={"api_key": api_key, "enabled": True}, fieldname=["name"]
+		)
+	except Exception:
+		raise frappe.AuthenticationError
+
 	if not docname:
 		raise frappe.AuthenticationError
 	form_dict = frappe.local.form_dict

@@ -18,7 +18,7 @@ if TYPE_CHECKING:
 	from frappe.model.meta import Meta
 
 
-@frappe.whitelist()
+@frappe.whitelist(methods=["POST"])
 def update_document_title(
 	*,
 	doctype: str,
@@ -74,17 +74,6 @@ def update_document_title(
 			if isinstance(transformed_name, dict):
 				transformed_name = transformed_name.get("new")
 			transformed_name = transformed_name or updated_name
-
-			# run rename validations before queueing
-			# use savepoints to avoid partial renames / commits
-			validate_rename(
-				doctype=doctype,
-				old=current_name,
-				new=transformed_name,
-				meta=doc.meta,
-				merge=merge,
-				save_point=True,
-			)
 
 			doc.queue_action("rename", name=transformed_name, merge=merge, queue=queue, timeout=36000)
 		else:

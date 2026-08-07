@@ -14,6 +14,7 @@ from frappe.oauth import (
 	get_server_url,
 	get_userinfo,
 )
+from frappe.sessions import get_csrf_token
 
 
 def get_oauth_server():
@@ -44,7 +45,7 @@ def encode_params(params):
 	return urlencode(params, quote_via=quote)
 
 
-@frappe.whitelist()
+@frappe.whitelist(methods=["POST"])
 def approve(*args, **kwargs):
 	r = frappe.request
 
@@ -93,11 +94,25 @@ def authorize(**kwargs):
 				frappe.flags.oauth_credentials["client_id"],
 				"skip_authorization",
 			)
-			unrevoked_tokens = frappe.get_all("OAuth Bearer Token", filters={"status": "Active"})
+			unrevoked_tokens = frappe.db.exists(
+				"OAuth Bearer Token",
+				{
+					"status": "Active",
+					"user": frappe.session.user,
+					"client": frappe.flags.oauth_credentials["client_id"],
+				},
+			)
 
 			if skip_auth or (get_oauth_settings().skip_authorization == "Auto" and unrevoked_tokens):
+				headers, _body, _status = get_oauth_server().create_authorization_response(
+					uri=frappe.flags.oauth_credentials["redirect_uri"],
+					body=r.get_data(),
+					headers=r.headers,
+					scopes=scopes,
+					credentials=frappe.flags.oauth_credentials,
+				)
 				frappe.local.response["type"] = "redirect"
-				frappe.local.response["location"] = success_url
+				frappe.local.response["location"] = headers.get("Location")
 			else:
 				if "openid" in scopes:
 					scopes.remove("openid")
@@ -110,6 +125,7 @@ def authorize(**kwargs):
 						"success_url": success_url,
 						"failure_url": failure_url,
 						"details": scopes,
+						"csrf_token": get_csrf_token(),
 					}
 				)
 				resp_html = frappe.render_template(
@@ -120,7 +136,7 @@ def authorize(**kwargs):
 			return generate_json_error_response(e)
 
 
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist(allow_guest=True, methods=["POST"])
 def get_token(*args, **kwargs):
 	try:
 		r = frappe.request
@@ -141,7 +157,7 @@ def get_token(*args, **kwargs):
 		return generate_json_error_response(e)
 
 
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist(allow_guest=True, methods=["POST"])
 def revoke_token(*args, **kwargs):
 	try:
 		r = frappe.request
@@ -160,7 +176,7 @@ def revoke_token(*args, **kwargs):
 	return
 
 
-@frappe.whitelist()
+@frappe.whitelist(methods=["GET", "POST"])
 def openid_profile(*args, **kwargs):
 	try:
 		r = frappe.request
@@ -202,8 +218,8 @@ def openid_configuration():
 	)
 
 
-@frappe.whitelist(allow_guest=True)
-def introspect_token(token: str, token_type_hint=None):
+@frappe.whitelist(allow_guest=True, methods=["POST"])
+def introspect_token(token: str, token_type_hint: str | None = None):
 	if token_type_hint not in ["access_token", "refresh_token"]:
 		token_type_hint = "access_token"
 	try:
