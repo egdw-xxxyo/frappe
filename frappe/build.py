@@ -294,6 +294,11 @@ def check_node_executable():
 
 
 def get_node_env():
+	# Respect an explicitly set NODE_OPTIONS (e.g. Docker image builds where the
+	# auto-detected 75%-of-RAM heap exceeds the container's cgroup memory limit
+	# and gets the build OOM-killed).
+	if os.environ.get("NODE_OPTIONS"):
+		return {"NODE_OPTIONS": os.environ["NODE_OPTIONS"]}
 	return {"NODE_OPTIONS": f"--max_old_space_size={get_safe_max_old_space_size()}"}
 
 

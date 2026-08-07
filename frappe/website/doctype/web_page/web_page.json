@@ -1,6 +1,6 @@
 {
  "actions": [],
- "allow_guest_to_view": 1,
+ "allow_guest_to_view": 0,
  "allow_import": 1,
  "creation": "2013-03-28 10:35:30",
  "description": "Page to show on the website\n",
@@ -353,6 +353,10 @@
    "role": "Website Manager",
    "share": 1,
    "write": 1
+  },
+  {
+   "read": 1,
+   "role": "All"
   }
  ],
  "search_fields": "title",

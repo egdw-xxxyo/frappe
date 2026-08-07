@@ -159,7 +159,7 @@ function get_version_timeline_content(version_doc, frm) {
 						(df.hidden && df.show_on_timeline)
 					) {
 						parts.push(
-							__("{0} from {1} to {2} in row #{3}", [
+							__("{0} from {1} to {2} in row {3}", [
 								__(
 									frappe.meta.get_label(
 										frm.fields_dict[row[0]].grid.doctype,
@@ -168,7 +168,7 @@ function get_version_timeline_content(version_doc, frm) {
 								),
 								format_content_for_timeline(p[1]),
 								format_content_for_timeline(p[2]),
-								row[1] + 1,
+								get_row_label(frm, row[0], row[2], row[1]),
 							])
 						);
 					}
@@ -417,6 +417,36 @@ function format_content_for_timeline(content) {
 	content = frappe.ellipsis(content, 40) || '""';
 	content = frappe.utils.escape_html(content);
 	return content.bold();
+}
+
+function get_row_label(frm, fieldname, row_name, row_idx) {
+	// Show "#N (identifier)" instead of just "#N" so users can tell which
+	// child row changed. Identifier = child doctype title_field, else a common
+	// naming field, read from the current form's matching row (by docname).
+	const row_no = row_idx + 1;
+	try {
+		const rows = (frm.doc && frm.doc[fieldname]) || [];
+		const grid_row = rows.find((r) => r.name === row_name);
+		if (!grid_row) return "#" + row_no;
+
+		const child_doctype = frm.fields_dict[fieldname].grid.doctype;
+		const meta = frappe.get_meta(child_doctype);
+		const candidates = [
+			meta && meta.title_field,
+			"item_code",
+			"item_name",
+			"description",
+		].filter(Boolean);
+
+		for (const f of candidates) {
+			if (grid_row[f]) {
+				return "#" + row_no + " (" + frappe.utils.escape_html(String(grid_row[f])) + ")";
+			}
+		}
+	} catch (e) {
+		// fall through to plain row number
+	}
+	return "#" + row_no;
 }
 
 function get_user_link(user) {
