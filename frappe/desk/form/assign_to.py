@@ -143,11 +143,6 @@ def _add(args=None, *, ignore_permissions=False):
 	return get(args)
 
 
-# Upstream version-15 split add() into a whitelisted wrapper and _add() impl;
-# Frappe CRM imports _add directly. Our add() already has the _add signature.
-_add = add
-
-
 @frappe.whitelist()
 def add_multiple(args=None):
 	if not args:
