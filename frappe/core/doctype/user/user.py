@@ -167,7 +167,12 @@ class User(Document):
 
 		session_docs = []
 		for session in sessions_data:
-			data = frappe.parse_json(session.sessiondata)
+			try:
+				data = frappe.parse_json(session.sessiondata)
+			except Exception:
+				# legacy pre-v15 rows stored a python repr instead of JSON;
+				# an unparsable row must not break loading the user doc.
+				continue
 			sid_hash = sha256_hash(session.sid)
 			session_docs.append(
 				{
