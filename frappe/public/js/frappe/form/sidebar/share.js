@@ -11,7 +11,11 @@ frappe.ui.form.Share = class Share {
 	}
 	render_sidebar() {
 		const shared = this.shared || this.frm.get_docinfo().shared;
-		const shared_users = shared.filter(Boolean).map((s) => s.user);
+		// group shares carry no user, so they have no avatar to show
+		const shared_users = shared
+			.filter(Boolean)
+			.map((s) => s.user)
+			.filter(Boolean);
 
 		if (this.frm.is_new()) {
 			this.parent.find(".share-doc-btn").hide();
@@ -91,7 +95,9 @@ frappe.ui.form.Share = class Share {
 
 		if (frappe.model.can_share(null, this.frm)) {
 			this.make_user_input();
+			this.make_group_input();
 			this.add_share_button();
+			this.add_group_share_button();
 			this.set_edit_share_events();
 		} else {
 			// if cannot share, disable sharing settings.
@@ -115,6 +121,57 @@ frappe.ui.form.Share = class Share {
 			only_input: true,
 			render_input: true,
 		});
+	}
+	make_group_input() {
+		// make add-group input
+		this.dialog.share_with_group = frappe.ui.form.make_control({
+			parent: $(this.dialog.body).find(".input-wrapper-add-group-share"),
+			df: {
+				fieldtype: "Link",
+				label: __("Share With Group"),
+				fieldname: "share_with_group",
+				options: "Employee Group",
+			},
+			only_input: true,
+			render_input: true,
+		});
+	}
+	add_group_share_button() {
+		var me = this,
+			d = this.dialog;
+		$(d.body)
+			.find(".btn-add-group-share")
+			.on("click", function () {
+				var group = d.share_with_group.get_value();
+				if (!group) {
+					return;
+				}
+				frappe.call({
+					method: "frappe.share.add",
+					args: {
+						doctype: me.frm.doctype,
+						name: me.frm.doc.name,
+						share_with_group: group,
+						read: $(d.body).find(".add-group-share-read").prop("checked") ? 1 : 0,
+						write: $(d.body).find(".add-group-share-write").prop("checked") ? 1 : 0,
+						submit: $(d.body).find(".add-group-share-submit").prop("checked") ? 1 : 0,
+						share: $(d.body).find(".add-group-share-share").prop("checked") ? 1 : 0,
+					},
+					btn: this,
+					callback: function (r) {
+						$.each(me.shared, function (i, s) {
+							if (s && s.share_with_group === r.message.share_with_group) {
+								// re-adding / remove the old share rule.
+								delete me.shared[i];
+							}
+						});
+						me.dirty = true;
+						me.shared.push(r.message);
+						me.render_shared();
+						me.frm.shared.refresh();
+					},
+				});
+			});
 	}
 	add_share_button() {
 		var me = this,
@@ -161,6 +218,7 @@ frappe.ui.form.Share = class Share {
 			.find(".edit-share")
 			.on("click", function () {
 				var user = $(this).parents(".shared-user:first").attr("data-user") || "",
+					group = $(this).parents(".shared-user:first").attr("data-group") || "",
 					value = $(this).prop("checked") ? 1 : 0,
 					property = $(this).attr("name"),
 					everyone = cint($(this).parents(".shared-user:first").attr("data-everyone"));
@@ -171,6 +229,7 @@ frappe.ui.form.Share = class Share {
 						doctype: me.frm.doctype,
 						name: me.frm.doc.name,
 						user: user,
+						share_with_group: group,
 						permission_to: property,
 						value: value,
 						everyone: everyone,
@@ -179,7 +238,12 @@ frappe.ui.form.Share = class Share {
 						var found = null;
 						$.each(me.shared, function (i, s) {
 							// update shared object
-							if (s && (s.user === user || (everyone && s.everyone === 1))) {
+							if (
+								s &&
+								((group && s.share_with_group === group) ||
+									(!group && s.user === user) ||
+									(everyone && s.everyone === 1))
+							) {
 								if (!r.message) {
 									delete me.shared[i];
 								} else {
