@@ -24,6 +24,7 @@ class DocShare(Document):
 		share: DF.Check
 		share_doctype: DF.Link
 		share_name: DF.DynamicLink
+		share_with_group: DF.Link | None
 		submit: DF.Check
 		user: DF.Link | None
 		write: DF.Check
@@ -52,6 +53,9 @@ class DocShare(Document):
 	def validate_user(self):
 		if self.everyone:
 			self.user = None
+			self.share_with_group = None
+		elif self.share_with_group:
+			self.user = None
 		elif not self.user:
 			frappe.throw(_("User is mandatory for Share"), frappe.MandatoryError)
 
@@ -75,6 +79,10 @@ class DocShare(Document):
 
 		if self.everyone:
 			doc.add_comment("Shared", _("{0} shared this document with everyone").format(owner))
+		elif self.share_with_group:
+			doc.add_comment(
+				"Shared", _("{0} shared this document with group {1}").format(owner, self.share_with_group)
+			)
 		else:
 			doc.add_comment(
 				"Shared", _("{0} shared this document with {1}").format(owner, get_fullname(self.user))
@@ -84,11 +92,11 @@ class DocShare(Document):
 		if not self.flags.ignore_share_permission:
 			self.check_share_permission()
 
+		shared_with = self.share_with_group if self.share_with_group else get_fullname(self.user)
+
 		self.get_doc().add_comment(
 			"Unshared",
-			_("{0} un-shared this document with {1}").format(
-				get_fullname(self.owner), get_fullname(self.user)
-			),
+			_("{0} un-shared this document with {1}").format(get_fullname(self.owner), shared_with),
 		)
 
 
@@ -96,3 +104,4 @@ def on_doctype_update():
 	"""Add index in `tabDocShare` for `(user, share_doctype)`"""
 	frappe.db.add_index("DocShare", ["user", "share_doctype"])
 	frappe.db.add_index("DocShare", ["share_doctype", "share_name"])
+	frappe.db.add_index("DocShare", ["share_with_group", "share_doctype"])

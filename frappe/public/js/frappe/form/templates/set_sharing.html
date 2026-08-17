@@ -40,8 +40,10 @@ var all_perms = standard_perms.concat(custom_perms);
 	{% for (var i=0, l=shared.length; i < l; i++) {
 		var s = shared[i]; %}
 		{% if(s && !s.everyone) { %}
-		<div class="shared-user" data-user="{%= s.user %}" data-name="{%= s.name %}" style="display: grid; grid-template-columns: 2fr repeat({%= all_perms.length %}, 1fr); gap: 8px; align-items: center;">
-			<div>{%= s.user %}</div>
+		<div class="shared-user" data-user="{%= s.user || "" %}" data-group="{%= s.share_with_group || "" %}" data-name="{%= s.name %}" style="display: grid; grid-template-columns: 2fr repeat({%= all_perms.length %}, 1fr); gap: 8px; align-items: center;">
+			<div>
+				{% if(s.share_with_group) { %}<i class="fa fa-users text-muted"></i> {%= s.share_with_group %}{% } else { %}{%= s.user %}{% } %}
+			</div>
 			{% for (var j=0; j < all_perms.length; j++) {
 				var perm = all_perms[j];
 				var is_disabled = perm.disable_check && !frm.perm[0][perm.name]; %}
@@ -80,6 +82,31 @@ var all_perms = standard_perms.concat(custom_perms);
 	</div>
 	<div>
 		<button class="btn btn-primary btn-sm btn-add-share" style="margin-top: 12px;">{{ __("Add") }}</button>
+	</div>
+
+	<hr>
+
+	<div class="row">
+		<div class="col-xs-4"><h6>{%= __("Share this document with group") %}</h6></div>
+		<div class="col-xs-2 flex justify-center align-center"><h6>{%= __("Can Read") %}</h6></div>
+		<div class="col-xs-2 flex justify-center align-center"><h6>{%= __("Can Write") %}</h6></div>
+		<div class="col-xs-2 flex justify-center align-center"><h6>{%= __("Can Submit") %}</h6></div>
+		<div class="col-xs-2 flex justify-center align-center"><h6>{%= __("Can Share") %}</h6></div>
+	</div>
+
+	<div class="row">
+		<div class="col-xs-4 input-wrapper-add-group-share"></div>
+		<div class="col-xs-2 flex justify-center align-flex-start mt-2"><input type="checkbox" class="add-group-share-read" name="read"></div>
+		<div class="col-xs-2 flex justify-center align-flex-start mt-2"><input type="checkbox" class="add-group-share-write" name="write"
+			{% if (!frm.perm[0].write){ %} disabled="disabled"{% } %}>
+		</div>
+		<div class="col-xs-2 flex justify-center align-flex-start mt-2"><input type="checkbox" class="add-group-share-submit" name="submit"
+			{% if (!frm.perm[0].submit){ %} disabled="disabled"{% } %}>
+		</div>
+		<div class="col-xs-2 flex justify-center align-flex-start mt-2"><input type="checkbox" class="add-group-share-share" name="share"></div>
+	</div>
+	<div>
+		<button class="btn btn-primary btn-sm btn-add-group-share mt-3">{{ __("Add") }}</button>
 	</div>
 	{% endif %}
 </div>

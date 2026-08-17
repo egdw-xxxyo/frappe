@@ -9,6 +9,7 @@
  "engine": "InnoDB",
  "field_order": [
   "user",
+  "share_with_group",
   "share_doctype",
   "share_name",
   "read",
@@ -25,6 +26,14 @@
    "in_list_view": 1,
    "label": "User",
    "options": "User",
+   "search_index": 1
+  },
+  {
+   "fieldname": "share_with_group",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Share With Group",
+   "options": "Employee Group",
    "search_index": 1
   },
   {

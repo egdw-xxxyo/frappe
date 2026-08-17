@@ -109,6 +109,15 @@ pdf_footer_html = "frappe.utils.pdf.pdf_footer_html"
 pdf_generator = "frappe.utils.pdf.get_chrome_pdf"
 # permissions
 
+# Declare that a doctype inherits share access from a parent document, e.g.
+#     share_access_inheritance = [
+#         {"doctype": "Task", "fieldname": "project", "parent_doctype": "Project"},
+#     ]
+# means a Task is reachable by anyone the Task's Project is shared with. Consumed by
+# `frappe.share.get_inherited_shared`, so it applies to list queries and to single-document
+# permission checks alike.
+share_access_inheritance = []
+
 permission_query_conditions = {
 	"Event": "frappe.desk.doctype.event.event.get_permission_query_conditions",
 	"ToDo": "frappe.desk.doctype.todo.todo.get_permission_query_conditions",
