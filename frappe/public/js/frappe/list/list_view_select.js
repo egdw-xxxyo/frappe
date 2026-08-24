@@ -257,34 +257,18 @@ frappe.views.ListViewSelect = class ListViewSelect {
 	}
 
 	setup_kanban_boards() {
-		function fetch_kanban_board(doctype) {
-			frappe.db.get_value(
-				"Kanban Board",
-				{ reference_doctype: doctype },
-				"name",
-				(board) => {
-					if (!$.isEmptyObject(board)) {
-						frappe.set_route("list", doctype, "kanban", board.name);
-					} else {
-						frappe.views.KanbanView.show_kanban_dialog(doctype);
-					}
-				}
-			);
-		}
+		const scope_value = frappe.views.KanbanView.get_current_scope_value(
+			this.doctype,
+			this.list_view
+		);
 
-		const last_opened_kanban =
-			frappe.model.user_settings[this.doctype]["Kanban"]?.last_kanban_board;
-		if (!last_opened_kanban) {
-			fetch_kanban_board(this.doctype);
-		} else {
-			frappe.db.exists("Kanban Board", last_opened_kanban).then((exists) => {
-				if (exists) {
-					frappe.set_route("list", this.doctype, "kanban", last_opened_kanban);
-				} else {
-					fetch_kanban_board(this.doctype);
-				}
-			});
-		}
+		return frappe.views.KanbanView.get_kanbans(this.doctype).then((kanbans) => {
+			if (!kanbans.length) {
+				return frappe.views.KanbanView.show_kanban_dialog(this.doctype, scope_value);
+			}
+
+			return frappe.views.KanbanView.route_to_board(this.doctype, kanbans, scope_value);
+		});
 	}
 
 	get_calendars() {
