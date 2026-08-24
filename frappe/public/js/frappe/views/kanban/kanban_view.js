@@ -10,12 +10,13 @@ frappe.views.KanbanView = class KanbanView extends frappe.views.ListView {
 		const route = frappe.get_route();
 		if (route.length === 3) {
 			const doctype = route[1];
-			const user_settings = frappe.get_user_settings(doctype)["Kanban"] || {};
-			if (!user_settings.last_kanban_board) {
+			const scope_value = frappe.views.KanbanView.get_current_scope_value(doctype);
+			const last_board = frappe.views.KanbanView.get_last_board(doctype, scope_value);
+			if (!last_board) {
 				return new frappe.views.KanbanView({ doctype: doctype });
 			}
 
-			route.push(user_settings.last_kanban_board);
+			route.push(last_board);
 			frappe.set_route(route);
 			return true;
 		}
@@ -27,22 +28,14 @@ frappe.views.KanbanView = class KanbanView extends frappe.views.ListView {
 	}
 
 	show() {
+		const scope_value = frappe.views.KanbanView.get_current_scope_value(this.doctype);
+
 		frappe.views.KanbanView.get_kanbans(this.doctype).then((kanbans) => {
 			frappe.route_options = {};
 			if (!kanbans.length) {
-				return frappe.views.KanbanView.show_kanban_dialog(this.doctype, true);
+				return frappe.views.KanbanView.show_kanban_dialog(this.doctype, scope_value);
 			} else if (kanbans.length && frappe.get_route().length !== 4) {
-				// Try to use the last board the user used, else default to the first available board
-				const last_board = frappe.get_user_settings(this.doctype)["Kanban"]
-					?.last_kanban_board;
-				if (last_board && kanbans.includes(last_board)) {
-					frappe.set_route("List", this.doctype, "Kanban", last_board);
-					return;
-				} else {
-					const first_board = kanbans[0];
-					frappe.set_route("List", this.doctype, "Kanban", first_board.name);
-					return;
-				}
+				return frappe.views.KanbanView.route_to_board(this.doctype, kanbans, scope_value);
 			} else {
 				this.kanbans = kanbans;
 
@@ -201,8 +194,13 @@ frappe.views.KanbanView = class KanbanView extends frappe.views.ListView {
 
 	before_render() {
 		frappe.model.user_settings.save(this.doctype, "last_view", this.view_name);
+
 		this.save_view_user_settings({
 			last_kanban_board: this.board_name,
+			last_kanban_board_scope: frappe.views.KanbanView.get_board_scope_value(
+				this.doctype,
+				this.board
+			),
 		});
 	}
 
@@ -339,7 +337,7 @@ frappe.views.KanbanView.get_kanbans = function (doctype) {
 				let route = `/desk/${frappe.router.slug(board.reference_doctype)}/view/kanban/${
 					board.name
 				}`;
-				kanbans.push({ name: board.name, route: route });
+				kanbans.push({ name: board.name, route: route, filters: board.filters });
 			});
 		}
 
@@ -353,7 +351,110 @@ frappe.views.KanbanView.get_kanbans = function (doctype) {
 	}
 };
 
-frappe.views.KanbanView.show_kanban_dialog = function (doctype) {
+frappe.views.KanbanView.get_board_scope_field = function (doctype) {
+	return doctype === "Task" ? "project" : null;
+};
+
+frappe.views.KanbanView.get_filter_value = function (filters, fieldname) {
+	if (!fieldname) return null;
+
+	let parsed = filters;
+	if (typeof parsed === "string") {
+		try {
+			parsed = JSON.parse(parsed || "[]");
+		} catch (error) {
+			return null;
+		}
+	}
+
+	if (!parsed) return null;
+	if (!Array.isArray(parsed)) return parsed[fieldname] ?? null;
+
+	const row = parsed.find(
+		(filter) => Array.isArray(filter) && filter.at(-3) === fieldname && filter.at(-2) === "="
+	);
+	return row ? row.at(-1) : null;
+};
+
+frappe.views.KanbanView.get_board_scope_value = function (doctype, board) {
+	return (
+		frappe.views.KanbanView.get_filter_value(
+			board.filters,
+			frappe.views.KanbanView.get_board_scope_field(doctype)
+		) || ""
+	);
+};
+
+frappe.views.KanbanView.get_current_scope_value = function (doctype, list_view) {
+	const scope_field = frappe.views.KanbanView.get_board_scope_field(doctype);
+	const view = list_view || (window.cur_list?.doctype === doctype ? window.cur_list : null);
+	if (!scope_field || !view?.filter_area) return "";
+
+	return frappe.views.KanbanView.get_filter_value(view.filter_area.get(), scope_field) || "";
+};
+
+frappe.views.KanbanView.get_last_board = function (doctype, scope_value) {
+	const settings = frappe.get_user_settings(doctype)["Kanban"] || {};
+	if ((settings.last_kanban_board_scope || "") !== (scope_value || "")) return null;
+
+	return settings.last_kanban_board || null;
+};
+
+frappe.views.KanbanView.select_board = function (doctype, kanbans, scope_value) {
+	const scope = scope_value || "";
+	const in_scope = kanbans.filter(
+		(board) => frappe.views.KanbanView.get_board_scope_value(doctype, board) === scope
+	);
+	if (!in_scope.length) return null;
+
+	const last_board = frappe.views.KanbanView.get_last_board(doctype, scope);
+	if (in_scope.some((board) => board.name === last_board)) return last_board;
+
+	return in_scope.map((board) => board.name).sort()[0];
+};
+
+frappe.views.KanbanView.route_to_board = function (doctype, kanbans, scope_value) {
+	const board_name = frappe.views.KanbanView.select_board(doctype, kanbans, scope_value);
+	if (board_name) {
+		return frappe.set_route("List", doctype, "Kanban", board_name);
+	}
+
+	if (scope_value) {
+		return frappe.views.KanbanView.show_kanban_dialog(doctype, scope_value);
+	}
+
+	return frappe.views.KanbanView.show_board_picker(doctype, kanbans);
+};
+
+frappe.views.KanbanView.show_board_picker = function (doctype, kanbans) {
+	const dialog = new frappe.ui.Dialog({
+		title: __("Select Kanban Board"),
+		fields: [
+			{
+				fieldtype: "Select",
+				fieldname: "board_name",
+				label: __("Kanban Board"),
+				options: kanbans.map((board) => board.name),
+				default: kanbans[0].name,
+				reqd: 1,
+			},
+		],
+		primary_action_label: __("Open"),
+		primary_action: (values) => {
+			dialog.hide();
+			frappe.set_route("List", doctype, "Kanban", values.board_name);
+		},
+		secondary_action_label: __("Create New Kanban Board"),
+		secondary_action: () => {
+			dialog.hide();
+			frappe.views.KanbanView.show_kanban_dialog(doctype);
+		},
+	});
+
+	dialog.show();
+};
+
+frappe.views.KanbanView.show_kanban_dialog = function (doctype, scope_value) {
 	let dialog = new_kanban_dialog();
 	dialog.show();
 
@@ -453,6 +554,7 @@ frappe.views.KanbanView.show_kanban_dialog = function (doctype) {
 				fieldname: "project",
 				label: __("Project"),
 				options: "Project",
+				default: scope_value || "",
 			});
 		}
 
