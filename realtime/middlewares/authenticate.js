@@ -18,7 +18,16 @@ function authenticate_with_frappe(socket, next) {
 		next(new Error("Invalid namespace"));
 	}
 
-	if (get_hostname(socket.request.headers.host) != get_hostname(socket.request.headers.origin)) {
+	// nginx in the container deployment rewrites Origin to a fixed
+	// `<proto>://${FRAPPE_SITE_NAME_HEADER}` while forwarding the browser's own Host,
+	// so the two never match when the site is reached by IP or by any hostname other
+	// than the site name — every socket is then rejected as "Invalid origin". The
+	// comparison guards against cross-origin sockets in browser-facing setups; behind
+	// that proxy it compares two values nginx itself produced, so skip it there.
+	if (
+		!process.env.FRAPPE_BACKEND_URL &&
+		get_hostname(socket.request.headers.host) != get_hostname(socket.request.headers.origin)
+	) {
 		next(new Error("Invalid origin"));
 		return;
 	}
@@ -58,6 +67,12 @@ function authenticate_with_frappe(socket, next) {
 		if (secret) {
 			headers["X-Frappe-Socket-Secret"] = secret;
 		}
+		if (process.env.FRAPPE_BACKEND_URL) {
+			// Talking to the backend directly bypasses nginx, which is what normally
+			// injects this header, so the backend would not know which site to resolve.
+			headers["X-Frappe-Site-Name"] =
+				process.env.FRAPPE_SITE_NAME_HEADER || get_site_name(socket);
+		}
 		return fetch(get_url(socket, path), {
 			...opts,
 			headers,
@@ -76,6 +91,13 @@ function authenticate_with_frappe(socket, next) {
 				message = retry_data.message;
 			}
 
+			if (!message || !message.user) {
+				// get_user_info returns {} when the socket secret does not match. Letting
+				// that through connects a socket with no user and no app handlers, i.e. a
+				// client that joins no room and silently receives nothing.
+				next(new Error("Unauthorized: no user info returned"));
+				return;
+			}
 			socket.user = message.user;
 			socket.user_type = message.user_type;
 			socket.installed_apps = message.installed_apps || [];
