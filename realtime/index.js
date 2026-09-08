@@ -25,6 +25,13 @@ const realtime = io.of(/^\/.*$/);
 // load and register middlewares
 const authenticate = require("./middlewares/authenticate");
 realtime.use(authenticate);
+
+// socket.io always creates the default "/" namespace, and the middleware above is
+// attached to the regex parent namespace, so "/" would accept every client with no
+// authentication at all — and then never emit anything, since events are published
+// into "/<sitename>". Reject it so a client that guessed the namespace wrong fails
+// loudly instead of holding a connected-looking socket that receives nothing.
+io.of("/").use((_socket, next) => next(new Error("Invalid namespace")));
 // =======================
 
 function on_connection(socket) {
