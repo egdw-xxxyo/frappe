@@ -15,7 +15,12 @@ function authenticate_with_frappe(socket, next) {
 	namespace = namespace.slice(1, namespace.length); // remove leading `/`
 
 	if (namespace != get_site_name(socket)) {
+		// Without the return the middleware keeps running and calls next() again at the
+		// end, which accepts the socket into a namespace nothing is ever published to
+		// (the server emits into `/<sitename>`, see realtime/index.js). The client then
+		// looks connected and silently receives no events.
 		next(new Error("Invalid namespace"));
+		return;
 	}
 
 	// nginx in the container deployment rewrites Origin to a fixed
