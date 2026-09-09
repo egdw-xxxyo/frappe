@@ -174,8 +174,12 @@ class User(Document):
 				# an unparsable row must not break loading the user doc.
 				continue
 			sid_hash = sha256_hash(session.sid)
+			# a plain dict here breaks User.as_dict(), which calls .as_dict()
+			# on every child row of every Table field, virtual ones included.
 			session_docs.append(
+				frappe.get_doc(
 				{
+					"doctype": "User Session Display",
 					"name": sid_hash,
 					"id": mask(sid_hash),
 					"owner": session.user,
@@ -186,6 +190,7 @@ class User(Document):
 					"session_created": data.creation,
 					"user_agent": data.user_agent,
 				}
+				)
 			)
 		return session_docs
 
