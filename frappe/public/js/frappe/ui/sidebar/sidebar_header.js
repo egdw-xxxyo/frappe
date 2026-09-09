@@ -39,18 +39,12 @@ frappe.ui.SidebarHeader = class SidebarHeader {
 				name: "edit-sidebar",
 				label: __("Edit Sidebar"),
 				icon: "edit",
-				condition: function () {
-					return frappe.boot.developer_mode;
-				},
 				onClick: function () {
 					me.sidebar.editor.toggle();
 				},
 			},
 			{
 				is_divider: true,
-				condition: function () {
-					return frappe.boot.developer_mode;
-				},
 			},
 		];
 		if (frappe.boot.desk_settings.notifications) {
