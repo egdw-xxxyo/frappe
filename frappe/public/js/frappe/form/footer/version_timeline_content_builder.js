@@ -141,7 +141,7 @@ function get_version_timeline_content(version_doc, frm) {
 				var df =
 					frm.fields_dict[row[0]] &&
 					frappe.meta.get_docfield(
-						frm.fields_dict[row[0]].grid.doctype,
+						frm.fields_dict[row[0]].df.options,
 						p[0],
 						frm.docname
 					);
@@ -162,7 +162,7 @@ function get_version_timeline_content(version_doc, frm) {
 							__("{0} from {1} to {2} in row {3}", [
 								__(
 									frappe.meta.get_label(
-										frm.fields_dict[row[0]].grid.doctype,
+										frm.fields_dict[row[0]].df.options,
 										p[0]
 									)
 								),
@@ -429,7 +429,7 @@ function get_row_label(frm, fieldname, row_name, row_idx) {
 		const grid_row = rows.find((r) => r.name === row_name);
 		if (!grid_row) return "#" + row_no;
 
-		const child_doctype = frm.fields_dict[fieldname].grid.doctype;
+		const child_doctype = frm.fields_dict[fieldname].df.options;
 		const meta = frappe.get_meta(child_doctype);
 		const candidates = [
 			meta && meta.title_field,
