@@ -10,7 +10,7 @@ from copy import copy
 from urllib.parse import unquote
 
 import frappe
-from frappe import _, conf
+from frappe import _
 from frappe.query_builder.utils import DocType
 from frappe.utils import call_hook_method, cint, cstr, encode, get_files_path, get_hook_method
 
@@ -209,7 +209,13 @@ def save_file_on_filesystem(fname, content, content_type=None, is_private=0):
 
 
 def get_max_file_size():
-	return conf.get("max_file_size") or 10485760
+	"""Delegate to the File API's limit: it reads System Settings and casts, which this
+	one never did — a `max_file_size` written as a string in site_config made the
+	comparison below raise `'>' not supported between instances of 'int' and 'str'`
+	and took down every upload that goes through `save_file`."""
+	from frappe.core.api.file import get_max_file_size as _file_api_limit
+
+	return _file_api_limit()
 
 
 def check_max_file_size(content):
