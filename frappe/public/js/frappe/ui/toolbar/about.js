@@ -31,6 +31,7 @@ frappe.ui.misc.about = function () {
 
 			<div class="about-info-rows">
 				<div class="about-info-row" id="erpnext-deployment-version"></div>
+				<div class="about-info-row" id="erpnext-android-version"></div>
 				<div class="about-info-row">
 					<div class="about-info-content">
 						<div class="about-info-title">${__("Frappe Framework Version")}</div>
@@ -98,6 +99,12 @@ frappe.ui.misc.about = function () {
 					</div>`).appendTo($w);
 			},
 		});
+		frappe.call({
+			method: "erpnext.devices.app_version.android_version_status",
+			callback: function (r) {
+				render_android_status(r && r.message);
+			},
+		});
 		if (!frappe.versions) {
 			frappe.call({
 				method: "frappe.utils.change_log.get_versions",
@@ -108,6 +115,67 @@ frappe.ui.misc.about = function () {
 		} else {
 			show_versions(frappe.versions);
 		}
+	};
+
+	// The APK published on this site against the version the server was built to talk to.
+	// The two drift apart on their own: the release mirror can fail after a deploy, and then
+	// benches keep running a build this server no longer supports with nothing saying so.
+	const render_android_status = function (status) {
+		const $w = $("#erpnext-android-version").empty();
+		if (!status || !status.required) return;
+
+		const required = frappe.utils.escape_html(status.required);
+		const available = status.available
+			? frappe.utils.escape_html(status.available)
+			: __("none");
+		const ok = status.ok;
+		const sub = ok
+			? __("Published: {0}", [available])
+			: `<span class="text-danger">${__("Published: {0} — update required", [
+					available,
+			  ])}</span>`;
+
+		$(`<div class="about-info-content">
+				<div class="about-info-title">
+					${__("Android app required")}: ${required}
+					${
+						ok
+							? ""
+							: `<a href="#" class="about-android-warning text-danger" title="${__(
+									"The published Android app is older than this server needs"
+							  )}">${frappe.utils.icon("solid-warning", "sm")}</a>`
+					}
+				</div>
+				<div class="about-info-sub">${sub}</div>
+			</div>`).appendTo($w);
+
+		if (ok) return;
+		const detail = [
+			__("This server was deployed expecting Android app {0}.", [required]),
+			status.available
+				? __("The newest APK published here is {0}.", [available])
+				: __("No APK has been published on this site yet."),
+			status.last_error
+				? __("Last release poll failed: {0}", [
+						frappe.utils.escape_html(status.last_error),
+				  ])
+				: __("Publish the matching release, then check Mobile App Settings."),
+		].join("<br>");
+
+		const show_detail = () =>
+			frappe.msgprint({
+				title: __("Android app out of date"),
+				message: detail,
+				indicator: "red",
+				primary_action: {
+					label: __("Mobile App Settings"),
+					action: () => frappe.set_route("Form", "Mobile App Settings"),
+				},
+			});
+		$w.find(".about-android-warning").on("click", (e) => {
+			e.preventDefault();
+			show_detail();
+		});
 	};
 
 	const get_version_text = function (app) {
