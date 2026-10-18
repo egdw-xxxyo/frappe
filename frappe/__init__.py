@@ -636,8 +636,16 @@ def has_permission(
 	)
 
 	if throw and not out:
-		if doc:
-			frappe.permissions.check_doctype_permission(doctype, ptype)
+		denial = {
+			"doctype": doctype,
+			"name": doc if isinstance(doc, str) else getattr(doc, "name", None),
+			"ptype": ptype,
+		}
+		try:
+			if doc:
+				frappe.permissions.check_doctype_permission(doctype, ptype)
+		finally:
+			frappe.flags.permission_denial = denial
 
 		document_label = f"{_(doctype)} {doc if isinstance(doc, str) else doc.name}" if doc else _(doctype)
 		frappe.flags.error_message = _("No permission for {0}").format(document_label)
