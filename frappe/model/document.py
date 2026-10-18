@@ -426,6 +426,7 @@ class Document(BaseDocument):
 		if self.meta.istable and self.get("parenttype"):
 			doctype, name = self.parenttype, self.parent
 
+		frappe.flags.permission_denial = {"doctype": doctype, "name": name, "ptype": perm_type}
 		frappe.flags.error_message = _(
 			"You need the '{0}' permission on {1} {2} to perform this action."
 		).format(
