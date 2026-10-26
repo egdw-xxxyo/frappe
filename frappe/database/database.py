@@ -451,6 +451,9 @@ class Database:
 	def sql_ddl(self, query, debug=False):
 		"""Commit and execute a query. DDL (Data Definition Language) queries that alter schema
 		autocommit in MariaDB."""
+		if frappe.flags.dry_run:
+			frappe.flags.dry_run.refuse("ddl")
+
 		transaction_control = self._disable_transaction_control
 		self._disable_transaction_control = 0
 		self.commit()

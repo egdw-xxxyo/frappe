@@ -13,6 +13,9 @@ queue_prefix = "insert_queue_for_"
 
 
 def deferred_insert(doctype: str, records: list[dict | "Document"] | str):
+	if frappe.flags.dry_run:
+		return frappe.flags.dry_run.skip("deferred_insert", doctype)
+
 	if isinstance(records, dict | list):
 		_records = json.dumps(records)
 	else:
