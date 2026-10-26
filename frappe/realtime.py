@@ -39,6 +39,9 @@ def publish_realtime(
 	:param doctype: Transmit to doctype, docname
 	:param docname: Transmit to doctype, docname
 	:param after_commit: (default False) will emit after current transaction is committed"""
+	if frappe.flags.dry_run:
+		return frappe.flags.dry_run.skip("realtime", event)
+
 	if message is None:
 		message = {}
 

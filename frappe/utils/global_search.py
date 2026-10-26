@@ -245,6 +245,9 @@ def update_global_search(doc):
 	`global_search_queue` from given doc
 	:param doc: Document to be added to global search
 	"""
+	if frappe.flags.dry_run:
+		return frappe.flags.dry_run.skip("global_search", doc.doctype)
+
 	if frappe.local.conf.get("disable_global_search"):
 		return
 

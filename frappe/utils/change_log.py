@@ -91,6 +91,8 @@ def get_change_log_for_app(app, from_version, to_version):
 
 @frappe.whitelist()
 def update_last_known_versions():
+	if frappe.flags.read_only:
+		return
 	with suppress(frappe.QueryDeadlockError):
 		frappe.db.set_value(
 			"User",

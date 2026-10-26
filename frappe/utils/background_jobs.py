@@ -116,6 +116,9 @@ def enqueue(
 	# To handle older implementations
 	is_async = kwargs.pop("async", is_async)
 
+	if frappe.flags.dry_run and not now:
+		return frappe.flags.dry_run.skip("enqueue", method)
+
 	if deduplicate:
 		if not job_id:
 			frappe.throw(_("`job_id` paramater is required for deduplication."))
