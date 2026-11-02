@@ -403,3 +403,16 @@
 		font-weight: 420;
 	}
 }
+
+.body-sidebar[data-preview] .sidebar-items {
+	pointer-events: none;
+	opacity: 0.9;
+}
+
+.sidebar-role-preview {
+	padding: 0 var(--padding-sm) var(--padding-sm);
+
+	.frappe-control {
+		margin-bottom: 0;
+	}
+}

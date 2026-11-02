@@ -161,11 +161,16 @@ def create_workspace_sidebar_for_workspaces():
 
 
 @frappe.whitelist()
-def add_sidebar_items(sidebar_title: str, sidebar_items: str):
+def add_sidebar_items(sidebar_title: str, sidebar_items: str, for_everyone: bool = False):
 	sidebar_items = loads(sidebar_items)
 	title = f"{sidebar_title}-{frappe.session.user}"
 	w = frappe.get_doc("Workspace Sidebar", sidebar_title)
-	if not frappe.conf.developer_mode:
+	if for_everyone:
+		if not is_workspace_manager() and "System Manager" not in frappe.get_roles():
+			frappe.throw(_("You need to be Workspace Manager to change the sidebar for everyone."))
+		if frappe.db.exists("Workspace Sidebar", title):
+			frappe.delete_doc("Workspace Sidebar", title, ignore_permissions=True)
+	elif not frappe.conf.developer_mode:
 		try:
 			w = frappe.get_doc("Workspace Sidebar", title)
 		except frappe.DoesNotExistError:

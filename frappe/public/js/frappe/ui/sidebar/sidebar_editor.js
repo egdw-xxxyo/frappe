@@ -40,9 +40,51 @@ export class SidebarEditor {
 		this.add_new_item_button.on("click", function () {
 			me.show_new_dialog();
 		});
+		this.load_roles();
+		this.setup_role_preview();
+	}
+	load_roles() {
+		if (this.role_options) return;
+		frappe.db
+			.get_list("Role", { fields: ["name"], filters: { disabled: 0 }, limit: 0, order_by: "name" })
+			.then((roles) => {
+				this.role_options = roles.map((r) => r.name);
+			});
+	}
+	setup_role_preview() {
+		const $holder = this.sidebar.wrapper.find(".sidebar-role-preview");
+		$holder.empty();
+		this.preview_control = frappe.ui.form.make_control({
+			parent: $holder,
+			df: {
+				fieldtype: "Link",
+				options: "Role",
+				fieldname: "preview_role",
+				label: __("View as role"),
+				placeholder: __("View as role"),
+				change: () => {
+					this.set_preview_role(this.preview_control.get_value() || null);
+				},
+			},
+			render_input: true,
+		});
+	}
+	set_preview_role(role) {
+		this.preview_role = role;
+		const $body = this.sidebar.wrapper.find(".body-sidebar");
+		if (role) {
+			$body.attr("data-preview", "1");
+		} else {
+			$body.removeAttr("data-preview");
+		}
+		this.sidebar.make_sidebar();
 	}
 	stop() {
 		this.edit_mode = false;
+		if (this.preview_role) {
+			this.preview_role = null;
+			this.sidebar.wrapper.find(".body-sidebar").removeAttr("data-preview");
+		}
 		$(this.active_item).addClass("active-sidebar");
 		this.sidebar.wrapper.find(".edit-mode").toggleClass("hidden");
 		this.sidebar.wrapper.removeAttr("data-mode");
@@ -53,33 +95,53 @@ export class SidebarEditor {
 		const me = this;
 		this.save_sidebar_button = this.sidebar.wrapper.find(".save-sidebar");
 		this.discard_button = this.sidebar.wrapper.find(".discard-button");
-		this.save_sidebar_button.on("click", async function (event) {
-			frappe.show_alert({
-				message: __("Saving Sidebar"),
-				indicator: "success",
-			});
-			me.prepare_data();
-			await frappe.call({
-				type: "POST",
-				method: "frappe.desk.doctype.workspace_sidebar.workspace_sidebar.add_sidebar_items",
-				args: {
-					sidebar_title: me.workspace_title || me.sidebar.sidebar_title,
-					sidebar_items: me.new_sidebar_items,
+		this.save_sidebar_button.on("click", function () {
+			if (me.preview_role) me.set_preview_role(null);
+			if (!me.can_save_for_everyone()) return me.save(false);
+			frappe.prompt(
+				{
+					fieldname: "scope",
+					fieldtype: "Select",
+					label: __("Save for"),
+					options: [__("Everyone"), __("Only me")].join("\n"),
+					default: __("Everyone"),
 				},
-				callback: function (r) {
-					frappe.boot.workspace_sidebar_item[r.message.name.toLowerCase()] = [
-						...me.new_sidebar_items,
-					];
-					frappe.ui.toolbar.clear_cache();
-					me.stop();
-					me.sidebar.make_sidebar();
-				},
-			});
+				(values) => me.save(values.scope === __("Everyone")),
+				__("Save Sidebar")
+			);
 		});
 
 		this.discard_button.on("click", function () {
 			me.toggle();
 			me.sidebar.make_sidebar();
+		});
+	}
+	can_save_for_everyone() {
+		return frappe.user.has_role("Workspace Manager") || frappe.user.has_role("System Manager");
+	}
+	async save(for_everyone) {
+		const me = this;
+		frappe.show_alert({
+			message: __("Saving Sidebar"),
+			indicator: "success",
+		});
+		me.prepare_data();
+		await frappe.call({
+			type: "POST",
+			method: "frappe.desk.doctype.workspace_sidebar.workspace_sidebar.add_sidebar_items",
+			args: {
+				sidebar_title: me.workspace_title || me.sidebar.sidebar_title,
+				sidebar_items: me.new_sidebar_items,
+				for_everyone: for_everyone ? 1 : 0,
+			},
+			callback: function (r) {
+				frappe.boot.workspace_sidebar_item[r.message.name.toLowerCase()] = [
+					...me.new_sidebar_items,
+				];
+				frappe.ui.toolbar.clear_cache();
+				me.stop();
+				me.sidebar.make_sidebar();
+			},
 		});
 	}
 	prepare_data() {
@@ -345,6 +407,13 @@ export class SidebarEditor {
 				label: "Icon",
 			},
 			{
+				fieldname: "visible_roles",
+				fieldtype: "MultiSelectPills",
+				label: __("Visible To Roles"),
+				description: __("Empty = visible to everyone"),
+				options: this.role_options || [],
+			},
+			{
 				fieldtype: "HTML",
 				fieldname: "filter_area",
 			},
@@ -415,7 +484,9 @@ export class SidebarEditor {
 		];
 		if (opts && opts.item) {
 			dialog_fields.forEach((f) => {
-				if (
+				if (f.fieldname === "visible_roles") {
+					f.default = me.split_roles(opts.item.visible_roles);
+				} else if (
 					opts.item[f.fieldname] !== undefined &&
 					f.fieldtype !== "Section Break" &&
 					f.fieldtype !== "Column Break"
@@ -432,6 +503,7 @@ export class SidebarEditor {
 			primary_action_label: "Save",
 			size: "small",
 			primary_action(values) {
+				values.visible_roles = (values.visible_roles || []).join(",");
 				if (me.filter_group) {
 					me.filter_group.get_filters();
 				}
@@ -476,6 +548,12 @@ export class SidebarEditor {
 		});
 
 		return d;
+	}
+	split_roles(value) {
+		return (value || "")
+			.split(",")
+			.map((r) => r.trim())
+			.filter(Boolean);
 	}
 	setup_filter(d, doctype) {
 		if (this.filter_group) {

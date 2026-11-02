@@ -469,9 +469,9 @@ frappe.ui.Sidebar = class Sidebar {
 		this.empty();
 		this.wrapper.find(".collapse-sidebar-link").removeClass("hidden");
 		if (this.editor.edit_mode) {
-			this.create_sidebar(this.editor.new_sidebar_items);
+			this.create_sidebar(this.filter_by_roles(this.editor.new_sidebar_items));
 		} else {
-			this.create_sidebar(this.workspace_sidebar_items);
+			this.create_sidebar(this.filter_by_roles(this.workspace_sidebar_items));
 		}
 
 		// Scroll sidebar to selected page if it is not in viewport.
@@ -481,6 +481,27 @@ frappe.ui.Sidebar = class Sidebar {
 
 		this.set_active_workspace_item();
 		this.set_sidebar_state();
+	}
+	get_visible_roles(item) {
+		return (item.visible_roles || "")
+			.split(",")
+			.map((r) => r.trim())
+			.filter(Boolean);
+	}
+	filter_by_roles(items) {
+		const preview = this.editor.preview_role;
+		if (!preview && (this.editor.edit_mode || frappe.session.user === "Administrator")) {
+			return items;
+		}
+		const roles = preview ? [preview] : frappe.user_roles || [];
+		const visible = (item) => {
+			const required = this.get_visible_roles(item);
+			return !required.length || required.some((r) => roles.includes(r));
+		};
+		return (items || []).filter(visible).map((item) => {
+			if (!item.nested_items || !item.nested_items.length) return item;
+			return { ...item, nested_items: item.nested_items.filter(visible) };
+		});
 	}
 	create_sidebar(items) {
 		this.empty();
