@@ -479,6 +479,7 @@ def get_sidebar_items(allowed_workspaces):
 				"route_options": item.route_options,
 				"tab": item.navigate_to_tab,
 				"visible_roles": item.get("visible_roles"),
+				"icon_color": item.get("icon_color"),
 			}
 			if (
 				item.link_type == "Report"

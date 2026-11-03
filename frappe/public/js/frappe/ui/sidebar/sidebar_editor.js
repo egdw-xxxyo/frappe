@@ -289,7 +289,7 @@ export class SidebarEditor {
 	}
 
 	make_dialog(opts) {
-		let title = "New Sidebar Item";
+		let title = __("New Sidebar Item");
 
 		const me = this;
 		this.dialog_opts = opts;
@@ -407,6 +407,13 @@ export class SidebarEditor {
 				label: "Icon",
 			},
 			{
+				depends_on:
+					'eval: doc.type == "Link" || (doc.indent == 1 && doc.type == "Section Break")',
+				fieldname: "icon_color",
+				fieldtype: "Color",
+				label: __("Icon Color"),
+			},
+			{
 				fieldname: "visible_roles",
 				fieldtype: "MultiSelectPills",
 				label: __("Visible To Roles"),
@@ -494,13 +501,13 @@ export class SidebarEditor {
 					f.default = opts.item[f.fieldname];
 				}
 			});
-			title = "Edit Sidebar Item";
+			title = __("Edit Sidebar Item");
 		}
 		let d;
 		this.dialog = d = new frappe.ui.Dialog({
 			title: title,
 			fields: dialog_fields,
-			primary_action_label: "Save",
+			primary_action_label: __("Save"),
 			size: "small",
 			primary_action(values) {
 				values.visible_roles = (values.visible_roles || []).join(",");

@@ -7312,3 +7312,9 @@ Toggle Theme,Перемкнути тему
 "Only me","Лише мене"
 "Save Sidebar","Зберегти бічне меню"
 "You need to be Workspace Manager to change the sidebar for everyone.","Щоб змінити бічне меню для всіх, потрібна роль Workspace Manager."
+Add Sidebar Item,Додати пункт меню
+New Sidebar Item,Новий пункт меню
+Edit Sidebar Item,Редагувати пункт меню
+Icon Color,Колір іконки
+Emoji,Емодзі
+Search for icons...,Пошук іконок...

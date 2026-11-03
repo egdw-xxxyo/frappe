@@ -33,7 +33,11 @@
                 {% } %}
 				<span class="sidebar-item-icon text-ink-gray-7" item-icon="{{ icon }}">
                     {% if (icon) { %}
-                        {%= frappe.utils.icon(icon, "sm", "", "", "text-ink-gray-7 current-color", true) %}
+                        {% if (/^#[0-9a-fA-F]{3,8}$/.test(item.icon_color || "")) { %}
+                            {%= frappe.utils.icon(icon, "sm", "", "color: " + item.icon_color, "current-color", true) %}
+                        {% } else { %}
+                            {%= frappe.utils.icon(icon, "sm", "", "", "text-ink-gray-7 current-color", true) %}
+                        {% } %}
                     {% } %}
                 </span>
                 <span class="sidebar-item-label">{{ item.label }}</span>

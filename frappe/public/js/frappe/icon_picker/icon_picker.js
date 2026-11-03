@@ -59,14 +59,14 @@ class Picker {
 	setup_tab() {
 		this.icon_picker_wrapper.find(".search-icons").after(`<div class="form-tabs-list">
 				<ul class="nav form-tabs" id="form-tabs" role="tablist">
-					<li class="nav-item show">
+					<li class="nav-item show" data-type="icon">
 						<button class="nav-link active" data-toggle="tab" role="tab" aria-selected="true">
-								Icon
+								${__("Icon")}
 						</button>
 					</li>
-					<li class="nav-item show">
+					<li class="nav-item show" data-type="emoji">
 						<button class="nav-link" data-toggle="tab" role="tab" aria-selected="true">
-								Emoji
+								${__("Emoji")}
 						</button>
 					</li>
 				</ul>
@@ -75,7 +75,7 @@ class Picker {
 		const me = this;
 
 		this.icon_picker_wrapper.find(".nav-item").on("click", function (e) {
-			let container_name = $(this).text().trim().toLowerCase();
+			let container_name = $(this).data("type");
 
 			icon_types.forEach((type) => {
 				if (type === container_name) {
