@@ -199,8 +199,9 @@ class Meta(Document):
 	def get_masked_fields(self, parenttype=None):
 		import copy
 
+		hooked = self.get_hooked_masked_fields(parenttype)
 		if frappe.session.user == "Administrator":
-			return []
+			return hooked
 		cache_key = f"masked_fields::{self.name}::{parenttype or ''}::{frappe.session.user}"
 		masked_fields = frappe.cache.get_value(cache_key)
 
@@ -215,7 +216,27 @@ class Meta(Document):
 					masked_fields.append(df_copy)
 			frappe.cache.set_value(cache_key, masked_fields)
 
-		return masked_fields
+		own = {df.fieldname for df in masked_fields}
+		return masked_fields + [df for df in hooked if df.fieldname not in own]
+
+	def get_hooked_masked_fields(self, parenttype=None):
+		import copy
+
+		fieldnames = {
+			fieldname
+			for method in frappe.get_hooks("masked_fields")
+			for fieldname in frappe.get_attr(method)(self.name, parenttype) or ()
+		}
+		if not fieldnames:
+			return []
+		masked = []
+		for df in self.fields:
+			if df.fieldname in fieldnames:
+				df_copy = copy.deepcopy(df)
+				df_copy.mask_readonly = 1
+				df_copy.mask_empty = 1
+				masked.append(df_copy)
+		return masked
 
 	@cached_property
 	def _dynamic_link_fields(self):

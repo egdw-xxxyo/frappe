@@ -958,6 +958,7 @@ class Document(BaseDocument):
 	def apply_fieldlevel_read_permissions(self):
 		"""Remove values the user is not allowed to read, and mask fields per mask permissions."""
 		if frappe.session.user == "Administrator":
+			self.mask_fields()
 			return
 
 		all_fields = self.meta.fields.copy()
@@ -990,7 +991,7 @@ class Document(BaseDocument):
 	def _restore_masked_fields_from_db(self):
 		"""Restore masked field values from DB so that link-field user-permission checks
 		are not tripped by the XXXXXXXX placeholder sent from the client."""
-		if frappe.flags.in_install or frappe.session.user == "Administrator" or self.is_new():
+		if frappe.flags.in_install or self.is_new():
 			return
 
 		mask_fields = self.meta.get_masked_fields()

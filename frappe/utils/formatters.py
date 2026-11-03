@@ -8,6 +8,7 @@ from dateutil.parser import ParserError
 
 import frappe
 from frappe.model.meta import get_field_currency, get_field_precision
+from frappe.model.utils.mask import is_mask_placeholder
 from frappe.utils import (
 	cint,
 	cstr,
@@ -53,6 +54,9 @@ def format_value(value, df=None, doc=None, currency=None, translated=False, form
 	elif isinstance(df, dict):
 		# Convert dict to object if necessary
 		df = frappe._dict(df)
+
+	if is_mask_placeholder(value):
+		return value
 
 	if value is None:
 		value = ""

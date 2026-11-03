@@ -7319,3 +7319,4 @@ Icon Color,Колір іконки
 Emoji,Емодзі
 Search for icons...,Пошук іконок...
 Only System Manager can edit the sidebar.,Редагувати бічну панель може лише System Manager.
+"Field {0} is hidden and cannot be used to filter, sort, group or total","Поле {0} приховано, тож за ним не можна фільтрувати, сортувати, групувати чи рахувати підсумки"
