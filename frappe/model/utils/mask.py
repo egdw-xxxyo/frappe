@@ -2,6 +2,8 @@
 # License: MIT. See LICENSE
 from typing import Any
 
+MASK_PLACEHOLDERS = frozenset({"XXXXXXXX", "XX-XX-XXXX", "XX:XX", "XX-XX-XXXX XX:XX"})
+
 
 def mask_field_value(field, val):
 	"""Mask a field value based on its fieldtype and options.
@@ -11,7 +13,8 @@ def mask_field_value(field, val):
 		val: The value to mask
 
 	Returns:
-		Masked value based on field type, or original value if None/empty
+		Masked value based on field type. None/empty values pass through unless
+		the field sets ``mask_empty`` (fields masked by the ``masked_fields`` hook)
 
 	Masking patterns:
 		- Phone (Data + Phone option): Shows first 3 chars + "XXXXXX"
@@ -22,7 +25,7 @@ def mask_field_value(field, val):
 		- Default: Shows "XXXXXXXX"
 	"""
 	if not val:
-		return val
+		return _empty_mask(field) if field.get("mask_empty") else val
 
 	if field.fieldtype == "Data" and field.options == "Phone":
 		if len(val) > 3:
@@ -40,6 +43,16 @@ def mask_field_value(field, val):
 		return "XX-XX-XXXX XX:XX"
 	else:
 		return "XXXXXXXX"
+
+
+def is_mask_placeholder(value) -> bool:
+	return isinstance(value, str) and value in MASK_PLACEHOLDERS
+
+
+def _empty_mask(field):
+	return {"Date": "XX-XX-XXXX", "Time": "XX:XX", "Datetime": "XX-XX-XXXX XX:XX"}.get(
+		field.fieldtype, "XXXXXXXX"
+	)
 
 
 def mask_pluck_results(

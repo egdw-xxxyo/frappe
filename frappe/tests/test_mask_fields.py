@@ -20,6 +20,7 @@ from frappe.model.utils.mask import mask_field_value
 from frappe.permissions import add_user_permission, update_permission_property
 from frappe.tests import IntegrationTestCase
 from frappe.utils import flt
+from frappe.utils.formatters import format_value
 
 
 def _make_field(fieldname, fieldtype="Data", options=None, mask=1, **kwargs):
@@ -73,6 +74,26 @@ class TestMaskFieldValue(IntegrationTestCase):
 
 	def test_empty_string_is_not_masked(self):
 		self.assertEqual(mask_field_value(self._field("Data"), ""), "")
+
+	def test_mask_empty_hides_empty_and_zero_values(self):
+		field = frappe._dict(fieldtype="Currency", options="", mask_empty=1)
+		for value in (None, 0, 0.0, ""):
+			self.assertEqual(mask_field_value(field, value), "XXXXXXXX")
+
+	def test_mask_empty_keeps_date_pattern(self):
+		field = frappe._dict(fieldtype="Date", options="", mask_empty=1)
+		self.assertEqual(mask_field_value(field, None), "XX-XX-XXXX")
+
+	def test_format_value_keeps_mask_placeholder(self):
+		for fieldtype, placeholder in (
+			("Currency", "XXXXXXXX"),
+			("Int", "XXXXXXXX"),
+			("Date", "XX-XX-XXXX"),
+			("Datetime", "XX-XX-XXXX XX:XX"),
+			("Time", "XX:XX"),
+		):
+			with self.subTest(fieldtype=fieldtype):
+				self.assertEqual(format_value(placeholder, self._field(fieldtype)), placeholder)
 
 
 class TestMaskFieldsBehaviour(IntegrationTestCase):
@@ -218,6 +239,31 @@ class TestMaskFieldsBehaviour(IntegrationTestCase):
 			ignore_permissions=True,
 		)
 		self.assertEqual(rows[0]["secret_data"], "top_secret_value")
+
+	def test_masked_field_cannot_be_filtered_sorted_grouped_or_totalled(self):
+		frappe.set_user(self.TEST_USER)
+		queries = (
+			{"filters": {"secret_data": "top_secret_value"}},
+			{"or_filters": {"secret_data": ["like", "top%"]}},
+			{"order_by": "secret_data desc"},
+			{"group_by": "secret_data", "fields": ["secret_data", {"COUNT": "*"}]},
+			{"fields": [{"MAX": "secret_data"}]},
+		)
+		for query in queries:
+			with self.subTest(query=query), self.assertRaises(frappe.PermissionError):
+				frappe.get_list(self.dt, **{"fields": ["name"], **query})
+
+	def test_masked_field_can_be_selected_next_to_filters_on_open_fields(self):
+		frappe.set_user(self.TEST_USER)
+		rows = frappe.get_list(
+			self.dt, filters={"public_data": "visible_to_all"}, fields=["secret_data"], order_by="name"
+		)
+		self.assertEqual([row.secret_data for row in rows], ["XXXXXXXX"])
+
+	def test_masked_field_filter_allowed_when_permissions_are_ignored(self):
+		frappe.set_user(self.TEST_USER)
+		rows = frappe.get_all(self.dt, filters={"secret_data": "top_secret_value"}, pluck="name")
+		self.assertEqual(rows, [self.docname])
 
 	def test_db_get_value_does_not_mask_when_permissions_are_ignored(self):
 		frappe.set_user(self.TEST_USER)

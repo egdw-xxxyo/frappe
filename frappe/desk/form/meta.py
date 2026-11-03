@@ -78,6 +78,9 @@ class FormMeta(Meta):
 
 		# add masked fields (per-user, per-meta)
 		d["masked_fields"] = [df.fieldname for df in self.get_masked_fields(parenttype=parenttype)]
+		for field in d.get("fields") or []:
+			if field.get("fieldname") in d["masked_fields"]:
+				field["mask"] = 1
 
 		return d
 

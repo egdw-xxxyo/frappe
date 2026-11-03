@@ -335,6 +335,9 @@ class Engine:
 					stacklevel=2,
 				)
 
+		if self.apply_permissions and is_select:
+			self.check_masked_field_usage()
+
 		self.add_permission_conditions()
 
 		if self.apply_permissions:
@@ -345,6 +348,39 @@ class Engine:
 
 		self.query.immutable = True
 		return self.query
+
+	def check_masked_field_usage(self):
+		"""Masking hides a value in the result, but a filter, sort, group or aggregate on the
+		same column still reveals it, so a masked field may only be selected as is."""
+		query = self.query
+		terms = [
+			*(term for term in (query._wheres, query._havings) if term),
+			*(term for term, _order in query._orderbys),
+			*query._groupbys,
+			*(term for term in query._selects if not isinstance(term, Field)),
+		]
+		masked = {}
+		for field in (field for term in terms for field in term.fields_()):
+			table = getattr(field.table, "_table_name", None)
+			doctype = get_doctype_name(table) if table else self.doctype
+			if doctype not in masked:
+				masked[doctype] = self.masked_field_labels(doctype)
+			if label := masked[doctype].get(field.name):
+				frappe.throw(
+					_("Field {0} is hidden and cannot be used to filter, sort, group or total").format(
+						frappe.bold(_(label))
+					),
+					frappe.PermissionError,
+				)
+
+	def masked_field_labels(self, doctype: str) -> dict[str, str]:
+		if doctype in CORE_DOCTYPES or not frappe.db.get_value("DocType", doctype, "name", cache=True):
+			return {}
+		parenttype = self.parent_doctype if doctype == self.doctype else self.doctype
+		return {
+			df.fieldname: df.label or df.fieldname
+			for df in frappe.get_meta(doctype).get_masked_fields(parenttype=parenttype)
+		}
 
 	def apply_fields(self, fields):
 		self.fields = self.parse_fields(fields)
