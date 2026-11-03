@@ -117,7 +117,7 @@ export class SidebarEditor {
 		});
 	}
 	can_save_for_everyone() {
-		return frappe.user.has_role("Workspace Manager") || frappe.user.has_role("System Manager");
+		return frappe.user.has_role("System Manager");
 	}
 	async save(for_everyone) {
 		const me = this;

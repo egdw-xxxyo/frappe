@@ -35,18 +35,22 @@ frappe.ui.SidebarHeader = class SidebarHeader {
 			{
 				is_divider: true,
 			},
-			{
-				name: "edit-sidebar",
-				label: __("Edit Sidebar"),
-				icon: "edit",
-				onClick: function () {
-					me.sidebar.editor.toggle();
-				},
-			},
-			{
-				is_divider: true,
-			},
 		];
+		if (frappe.user.has_role("System Manager")) {
+			this.dropdown_items.push(
+				{
+					name: "edit-sidebar",
+					label: __("Edit Sidebar"),
+					icon: "edit",
+					onClick: function () {
+						me.sidebar.editor.toggle();
+					},
+				},
+				{
+					is_divider: true,
+				}
+			);
+		}
 		if (frappe.boot.desk_settings.notifications) {
 			let is_dark = frappe.ui.get_current_theme() === "dark";
 			this.dropdown_items.push(

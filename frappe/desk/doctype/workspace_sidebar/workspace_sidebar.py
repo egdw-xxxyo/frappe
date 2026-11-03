@@ -162,6 +162,8 @@ def create_workspace_sidebar_for_workspaces():
 
 @frappe.whitelist()
 def add_sidebar_items(sidebar_title: str, sidebar_items: str, for_everyone: bool = False):
+	if "System Manager" not in frappe.get_roles():
+		frappe.throw(_("Only System Manager can edit the sidebar."), frappe.PermissionError)
 	sidebar_items = loads(sidebar_items)
 	title = f"{sidebar_title}-{frappe.session.user}"
 	w = frappe.get_doc("Workspace Sidebar", sidebar_title)
