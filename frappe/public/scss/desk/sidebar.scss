@@ -353,7 +353,13 @@
 }
 .bottom-edit-controls {
 	display: flex;
-	gap: 35%;
+	gap: 8px;
+	padding: 0 8px;
+	& > button {
+		flex: 1;
+		min-width: 0;
+		white-space: nowrap;
+	}
 }
 .body-sidebar-container[data-mode="edit"] {
 	.standard-sidebar-item:hover {

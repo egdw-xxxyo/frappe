@@ -166,7 +166,13 @@ def add_sidebar_items(sidebar_title: str, sidebar_items: str, for_everyone: bool
 		frappe.throw(_("Only System Manager can edit the sidebar."), frappe.PermissionError)
 	sidebar_items = loads(sidebar_items)
 	title = f"{sidebar_title}-{frappe.session.user}"
-	w = frappe.get_doc("Workspace Sidebar", sidebar_title)
+	if frappe.db.exists("Workspace Sidebar", sidebar_title):
+		w = frappe.get_doc("Workspace Sidebar", sidebar_title)
+	else:
+		w = frappe.new_doc("Workspace Sidebar")
+		w.title = sidebar_title
+		w.module = sidebar_title
+		w.header_icon = "hammer"
 	if for_everyone:
 		if not is_workspace_manager() and "System Manager" not in frappe.get_roles():
 			frappe.throw(_("You need to be Workspace Manager to change the sidebar for everyone."))
